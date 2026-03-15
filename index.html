@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -304,13 +305,150 @@
             border: 1px dashed var(--border-color);
         }
 
+        .footer {
+            margin-top: auto;
+            padding: 30px 0 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s ease;
+            opacity: 0.8;
+        }
+
+        .footer a:hover {
+            color: var(--accent-color);
+            opacity: 1;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Access Overlay Styles */
+        #access-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .access-card {
+            width: 100%;
+            max-width: 360px;
+            background: rgba(28, 28, 28, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px 24px;
+            text-align: center;
+            transform: translateY(-5%);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .access-card lottie-player {
+            margin: 0 auto 20px;
+            width: 120px;
+            height: 120px;
+        }
+
+        .access-card h2 {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        #access-key-input {
+            width: 100%;
+            height: 54px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+            padding-right: 50px;
+            transition: all 0.2s ease;
+        }
+
+        #access-key-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .paste-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .paste-icon:active {
+            background: rgba(36, 161, 222, 0.2);
+        }
+
+        .error-hint {
+            color: #ff4d4d;
+            font-size: 13px;
+            margin-top: -16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        #auth-btn {
+            height: 54px;
+        }
     </style>
 </head>
 <body>
+
+    <div id="access-overlay">
+        <div class="access-card">
+            <lottie-player 
+                src="https://raw.githubusercontent.com/vovashmyhol/storis/refs/heads/main/_039_SAFE_OUT.json" 
+                background="transparent" speed="1" loop autoplay>
+            </lottie-player>
+            <h2>Введите ключ доступа, который вы получили в боте</h2>
+            <div class="input-group">
+                <input type="tel" id="access-key-input" maxlength="6" placeholder="000000">
+                <div class="paste-icon" id="paste-btn" title="Вставить">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                    </svg>
+                </div>
+            </div>
+            <div id="auth-error" class="error-hint">Неверный ключ доступа</div>
+            <button id="auth-btn" class="tg-button">Продолжить</button>
+        </div>
+    </div>
 
     <div class="header">
         <h1>Story Slicer Pro 4:5</h1>
@@ -358,6 +496,10 @@
         </div>
     </div>
 
+    <footer class="footer">
+        <a href="https://t.me/voco_in" target="_blank" rel="noopener noreferrer">Powered by @voco_in</a>
+    </footer>
+
     <script>
         const uploadArea = document.getElementById('upload-area');
         const fileInput = document.getElementById('file-input');
@@ -372,6 +514,65 @@
         const uploadLabel = document.querySelector('.upload-text');
         const resultsContainer = document.getElementById('results-container');
         const resultsGrid = document.getElementById('results-grid');
+
+        // Access Control Logic
+        const accessOverlay = document.getElementById('access-overlay');
+        const accessInput = document.getElementById('access-key-input');
+        const authBtn = document.getElementById('auth-btn');
+        const authError = document.getElementById('auth-error');
+        const pasteBtn = document.getElementById('paste-btn');
+
+        // Check auth status on load
+        if (localStorage.getItem('isAuthorized_story_v1') === 'true') {
+            accessOverlay.style.display = 'none';
+        }
+
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                accessInput.value = text.replace(/\D/g, '').substring(0, 6);
+            } catch (err) {
+                console.error('Failed to read clipboard');
+            }
+        });
+
+        authBtn.addEventListener('click', () => {
+            const key = accessInput.value;
+            
+            // Logic: 6 digits
+            // 1st digit: 0-4
+            // Last digit: 6-9
+            if (key.length === 6) {
+                const first = parseInt(key[0]);
+                const last = parseInt(key[5]);
+                
+                if (first >= 0 && first <= 4 && last >= 6 && last <= 9) {
+                    // Valid
+                    localStorage.setItem('isAuthorized_story_v1', 'true');
+                    accessOverlay.style.opacity = '0';
+                    accessOverlay.style.transition = 'opacity 0.4s ease';
+                    setTimeout(() => {
+                        accessOverlay.style.display = 'none';
+                    }, 400);
+                    return;
+                }
+            }
+            
+            // Invalid
+            authError.style.display = 'block';
+            accessInput.style.borderColor = '#ff4d4d';
+            accessInput.animate([
+                { transform: 'translateX(-5px)' },
+                { transform: 'translateX(5px)' },
+                { transform: 'translateX(-5px)' },
+                { transform: 'translateX(0)' }
+            ], { duration: 200 });
+        });
+
+        accessInput.addEventListener('input', () => {
+            authError.style.display = 'none';
+            accessInput.style.borderColor = 'var(--border-color)';
+        });
 
         let originalImage = null;
         let isSliced = false;
