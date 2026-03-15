@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TG Story Letterbox Slicer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --surface-color: #1c1c1c;
+            --accent-color: #24A1DE;
+            --accent-hover: #1e8ec4;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --border-color: #333333;
+            --tg-blue: #24A1DE;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--surface-color);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #upload-area {
+            width: 100%;
+            aspect-ratio: 4/5;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #upload-area:hover {
+            border-color: var(--accent-color);
+            background: #050505;
+        }
+
+        #upload-area.has-image {
+            border-style: solid;
+            border-color: transparent;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            color: var(--tg-blue);
+        }
+
+        .upload-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        #preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            pointer-events: none;
+            display: none;
+        }
+
+        .grid-overlay div {
+            border: 0.5px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-container {
+            width: 100%;
+        }
+
+        .tg-button {
+            width: 100%;
+            height: 50px;
+            background-color: var(--tg-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tg-button:active {
+            transform: scale(0.97);
+            background-color: var(--accent-hover);
+        }
+
+        .tg-button:disabled {
+            background-color: #2c3947;
+            color: #556575;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            display: none;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-text {
+            color: #4CAF50;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .reset-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-decoration: underline;
+            display: none;
+            width: 100%;
+        }
+
+        .info-card {
+            background: rgba(36, 161, 222, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .info-card svg {
+            width: 20px;
+            height: 20px;
+            color: var(--tg-blue);
+            flex-shrink: 0;
+        }
+
+        .info-card p {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Story Slicer Pro 4:5</h1>
+        <p>Нарезка 3x3 в формате 4:5 (1080x1350)</p>
+    </div>
+
+    <div class="main-container fade-in">
+        <div id="upload-area" onclick="document.getElementById('file-input').click()">
+            <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span class="upload-text">Загрузить фото</span>
+            <img id="preview-img" alt="Preview">
+            <div class="grid-overlay" id="grid-overlay">
+                <div></div><div></div><div></div>
+                <div></div><div></div><div></div>
+                <div></div><div></div><div></div>
+            </div>
+        </div>
+
+        <input type="file" id="file-input" class="hidden" accept="image/*">
+
+        <div class="button-container">
+            <button id="action-btn" class="tg-button" disabled>
+                <div class="spinner" id="btn-spinner"></div>
+                <span id="btn-text">Выберите фото</span>
+            </button>
+            <div class="success-text" id="success-msg">Фото готово! Скачайте архив</div>
+            <button id="reset-btn" class="reset-btn">Другое фото</button>
+        </div>
+
+        <div class="info-card" id="info-card">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p>Фото заполнит сетку 3x3. Каждая часть будет иметь формат 4:5 (1080x1350 пикселей). Края могут быть обрезаны для заполнения.</p>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const gridOverlay = document.getElementById('grid-overlay');
+        const actionBtn = document.getElementById('action-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const successMsg = document.getElementById('success-msg');
+        const resetBtn = document.getElementById('reset-btn');
+        const uploadIcon = document.querySelector('.upload-icon');
+        const uploadLabel = document.querySelector('.upload-text');
+
+        let originalImage = null;
+        let isSliced = false;
+        let slices = [];
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        previewImg.src = event.target.result;
+                        previewImg.style.display = 'block';
+                        gridOverlay.style.display = 'grid';
+                        uploadArea.classList.add('has-image');
+                        uploadIcon.style.display = 'none';
+                        uploadLabel.style.display = 'none';
+                        resetBtn.style.display = 'block';
+                        
+                        actionBtn.disabled = false;
+                        btnText.innerText = 'Нарезать';
+                        isSliced = false;
+                        successMsg.style.display = 'none';
+                    };
+                    originalImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        resetBtn.addEventListener('click', function() {
+            previewImg.style.display = 'none';
+            gridOverlay.style.display = 'none';
+            uploadArea.classList.remove('has-image');
+            uploadIcon.style.display = 'block';
+            uploadLabel.style.display = 'block';
+            resetBtn.style.display = 'none';
+            actionBtn.disabled = true;
+            btnText.innerText = 'Выберите фото';
+            successMsg.style.display = 'none';
+            fileInput.value = '';
+            originalImage = null;
+            isSliced = false;
+            slices = [];
+        });
+
+        actionBtn.addEventListener('click', async function() {
+            if (isSliced) {
+                downloadAll();
+                return;
+            }
+
+            performSlice();
+        });
+
+        async function performSlice() {
+            actionBtn.disabled = true;
+            btnSpinner.style.display = 'block';
+            btnText.innerText = 'Нарезаем...';
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Create massive offscreen canvas representing the 3x3 grid of 1080x1350
+            const outW = 1080;
+            const outH = 1350;
+            const totalWidth = outW * 3;
+            const totalHeight = outH * 3;
+            
+            const bigCanvas = document.createElement('canvas');
+            bigCanvas.width = totalWidth;
+            bigCanvas.height = totalHeight;
+            const bigCtx = bigCanvas.getContext('2d');
+            
+            // Fill with black (fallback)
+            bigCtx.fillStyle = 'black';
+            bigCtx.fillRect(0, 0, totalWidth, totalHeight);
+            
+            // Calculate scale to "cover" (fill the grid)
+            const targetRatio = totalWidth / totalHeight;
+            const imgRatio = originalImage.width / originalImage.height;
+            
+            let drawW, drawH, drawX, drawY;
+            if (imgRatio > targetRatio) {
+                // Image is wider than 4:5 grid -> match height
+                drawH = totalHeight;
+                drawW = totalHeight * imgRatio;
+                drawX = (totalWidth - drawW) / 2;
+                drawY = 0;
+            } else {
+                // Image is taller than 4:5 grid -> match width
+                drawW = totalWidth;
+                drawH = totalWidth / imgRatio;
+                drawX = 0;
+                drawY = (totalHeight - drawH) / 2;
+            }
+            
+            bigCtx.drawImage(originalImage, drawX, drawY, drawW, drawH);
+
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = outW;
+            sliceCanvas.height = outH;
+            const sliceCtx = sliceCanvas.getContext('2d');
+
+            slices = [];
+            
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    sliceCtx.clearRect(0, 0, outW, outH);
+                    sliceCtx.drawImage(
+                        bigCanvas,
+                        col * outW,
+                        row * outH,
+                        outW,
+                        outH,
+                        0,
+                        0,
+                        outW,
+                        outH
+                    );
+                    const dataUrl = sliceCanvas.toDataURL('image/jpeg', 0.9);
+                    slices.push({
+                        name: `part_${row + 1}_${col + 1}.jpg`,
+                        data: dataUrl
+                    });
+                }
+            }
+
+            isSliced = true;
+            actionBtn.disabled = false;
+            btnSpinner.style.display = 'none';
+            btnText.innerText = 'Скачать результат';
+            successMsg.style.display = 'block';
+            
+            if (window.navigator.vibrate) {
+                window.navigator.vibrate(50);
+            }
+        }
+
+        async function downloadAll() {
+            if (slices.length === 0) return;
+
+            actionBtn.disabled = true;
+            btnText.innerText = 'Архивация...';
+            btnSpinner.style.display = 'block';
+
+            const zip = new JSZip();
+            const imgFolder = zip.folder("telegram_story_grid");
+
+            slices.forEach((slice, index) => {
+                const base64Data = slice.data.split(',')[1];
+                imgFolder.file(`story_part_${index + 1}.jpg`, base64Data, {base64: true});
+            });
+
+            const content = await zip.generateAsync({type: "blob"});
+            saveAs(content, "telegram_story_grid_4_5.zip");
+
+            actionBtn.disabled = false;
+            btnText.innerText = 'Скачать еще раз';
+            btnSpinner.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
