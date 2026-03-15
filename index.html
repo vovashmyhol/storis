@@ -28,6 +28,10 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
@@ -256,7 +260,7 @@
         .results-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            gap: 12px;
         }
 
         .result-item {
@@ -273,32 +277,15 @@
             height: 100%;
             object-fit: cover;
             cursor: pointer;
+            display: block;
             -webkit-touch-callout: default !important;
             user-select: auto !important;
-        }
-
-        .result-item .download-btn {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(36, 161, 222, 0.9);
-            color: #fff;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 10;
         }
 
         .result-item .part-label {
             position: absolute;
             bottom: 4px;
-            left: 4px;
+            right: 4px;
             background: rgba(0, 0, 0, 0.6);
             color: #fff;
             font-size: 10px;
@@ -364,7 +351,7 @@
     <div class="results-container" id="results-container">
         <h2>Результат (3x3)</h2>
         <div class="tma-hint">
-            💡 В Telegram Mini App: зажмите каждое фото пальцем и выберите «Сохранить в галерею».
+            💡 Зажмите пальцем каждое фото в сетке выше и выберите «Сохранить в галерею».
         </div>
         <div class="results-grid" id="results-grid">
             <!-- Images will be injected here -->
@@ -518,7 +505,7 @@
             isSliced = true;
             actionBtn.disabled = false;
             btnSpinner.style.display = 'none';
-            btnText.innerText = 'Скачать результат ZIP';
+            btnText.innerText = 'Скачать ZIP (ПК)';
             successMsg.style.display = 'block';
             
             // Show results grid
@@ -531,23 +518,21 @@
                 const img = document.createElement('img');
                 img.src = slice.data;
                 img.alt = slice.name;
-                
-                const downloadLink = document.createElement('a');
-                downloadLink.href = slice.data;
-                downloadLink.download = slice.name;
-                downloadLink.className = 'download-btn';
-                downloadLink.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
 
                 const label = document.createElement('div');
                 label.className = 'part-label';
                 label.innerText = idx + 1;
 
                 item.appendChild(img);
-                item.appendChild(downloadLink);
                 item.appendChild(label);
                 resultsGrid.appendChild(item);
             });
             resultsContainer.style.display = 'flex';
+            
+            // Smoothly scroll to results
+            setTimeout(() => {
+                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
             
             if (window.navigator.vibrate) {
                 window.navigator.vibrate(50);
