@@ -77,7 +77,7 @@
 
         #upload-area {
             width: 100%;
-            aspect-ratio: 4/5;
+            aspect-ratio: 1035/1280;
             border: 2px dashed var(--border-color);
             border-radius: 12px;
             display: flex;
@@ -266,7 +266,6 @@
 
         .result-item {
             position: relative;
-            aspect-ratio: 4/5;
             background: #000;
             border-radius: 8px;
             overflow: hidden;
@@ -451,8 +450,8 @@
     </div>
 
     <div class="header">
-        <h1>Story Slicer Pro 4:5</h1>
-        <p>Нарезка 3x3 в формате 4:5 (1080x1350)</p>
+        <h1>Story Slicer Pro</h1>
+        <p>Нарезка 3x3 (1035x1280)</p>
     </div>
 
     <div class="main-container fade-in">
@@ -482,7 +481,7 @@
 
         <div class="info-card" id="info-card">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p>Фото заполнит сетку 3x3. Каждая часть будет иметь формат 4:5 (1080x1350 пикселей). Края могут быть обрезаны для заполнения.</p>
+            <p>Фото заполнит сетку 3x3. Каждая из 9 частей будет иметь размер 1035x1280. Фото будет автоматически центрировано и обрезано под формат.</p>
         </div>
     </div>
 
@@ -585,6 +584,7 @@
                 reader.onload = function(event) {
                     originalImage = new Image();
                     originalImage.onload = function() {
+                        uploadArea.style.aspectRatio = '1035 / 1280';
                         previewImg.src = event.target.result;
                         previewImg.style.display = 'block';
                         gridOverlay.style.display = 'grid';
@@ -605,6 +605,7 @@
         });
 
         resetBtn.addEventListener('click', function() {
+            uploadArea.style.aspectRatio = '4 / 5';
             previewImg.style.display = 'none';
             gridOverlay.style.display = 'none';
             uploadArea.classList.remove('has-image');
@@ -638,62 +639,35 @@
 
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Create massive offscreen canvas representing the 3x3 grid of 1080x1350
-            const outW = 1080;
-            const outH = 1350;
-            const totalWidth = outW * 3;
-            const totalHeight = outH * 3;
-            
-            const bigCanvas = document.createElement('canvas');
-            bigCanvas.width = totalWidth;
-            bigCanvas.height = totalHeight;
-            const bigCtx = bigCanvas.getContext('2d');
-            
-            // Fill with black (fallback)
-            bigCtx.fillStyle = 'black';
-            bigCtx.fillRect(0, 0, totalWidth, totalHeight);
-            
-            // Calculate scale to "cover" (fill the grid)
-            const targetRatio = totalWidth / totalHeight;
-            const imgRatio = originalImage.width / originalImage.height;
-            
-            let drawW, drawH, drawX, drawY;
-            if (imgRatio > targetRatio) {
-                // Image is wider than 4:5 grid -> match height
-                drawH = totalHeight;
-                drawW = totalHeight * imgRatio;
-                drawX = (totalWidth - drawW) / 2;
-                drawY = 0;
-            } else {
-                // Image is taller than 4:5 grid -> match width
-                drawW = totalWidth;
-                drawH = totalWidth / imgRatio;
-                drawX = 0;
-                drawY = (totalHeight - drawH) / 2;
-            }
-            
-            bigCtx.drawImage(originalImage, drawX, drawY, drawW, drawH);
+            const sliceWidth = 1035;
+            const sliceHeight = 1280;
+            const gridWidth = sliceWidth * 3;
+            const gridHeight = sliceHeight * 3;
+
+            const scale = Math.max(gridWidth / originalImage.width, gridHeight / originalImage.height);
+            const drawWidth = originalImage.width * scale;
+            const drawHeight = originalImage.height * scale;
+            const offsetX = (gridWidth - drawWidth) / 2;
+            const offsetY = (gridHeight - drawHeight) / 2;
 
             const sliceCanvas = document.createElement('canvas');
-            sliceCanvas.width = outW;
-            sliceCanvas.height = outH;
+            sliceCanvas.width = sliceWidth;
+            sliceCanvas.height = sliceHeight;
             const sliceCtx = sliceCanvas.getContext('2d');
 
             slices = [];
             
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 3; col++) {
-                    sliceCtx.clearRect(0, 0, outW, outH);
+                    sliceCtx.clearRect(0, 0, sliceWidth, sliceHeight);
+                    
+                    const sliceX = col * sliceWidth;
+                    const sliceY = row * sliceHeight;
+                    
                     sliceCtx.drawImage(
-                        bigCanvas,
-                        col * outW,
-                        row * outH,
-                        outW,
-                        outH,
-                        0,
-                        0,
-                        outW,
-                        outH
+                        originalImage,
+                        offsetX - sliceX, offsetY - sliceY,
+                        drawWidth, drawHeight
                     );
                     const dataUrl = sliceCanvas.toDataURL('image/jpeg', 0.9);
                     slices.push({
@@ -715,6 +689,7 @@
                 const item = document.createElement('div');
                 item.className = 'result-item fade-in';
                 item.style.animationDelay = `${idx * 0.05}s`;
+                item.style.aspectRatio = '1035 / 1280';
                 
                 const img = document.createElement('img');
                 img.src = slice.data;
@@ -756,7 +731,7 @@
             });
 
             const content = await zip.generateAsync({type: "blob"});
-            saveAs(content, "telegram_story_grid_4_5.zip");
+            saveAs(content, "telegram_story_grid.zip");
 
             actionBtn.disabled = false;
             btnText.innerText = 'Скачать еще раз';
