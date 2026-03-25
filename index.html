@@ -116,7 +116,7 @@
         #preview-img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             display: none;
         }
 
@@ -481,7 +481,7 @@
 
         <div class="info-card" id="info-card">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p>Фото заполнит сетку 3x3. Каждая из 9 частей будет иметь размер 1035x1280. Фото будет автоматически центрировано и обрезано под формат.</p>
+            <p>Фото целиком поместится в сетку 3x3. Каждая из 9 частей будет иметь размер 1035x1280. Если пропорции фото не совпадают, будут добавлены черные поля.</p>
         </div>
     </div>
 
@@ -644,7 +644,7 @@
             const gridWidth = sliceWidth * 3;
             const gridHeight = sliceHeight * 3;
 
-            const scale = Math.max(gridWidth / originalImage.width, gridHeight / originalImage.height);
+            const scale = Math.min(gridWidth / originalImage.width, gridHeight / originalImage.height);
             const drawWidth = originalImage.width * scale;
             const drawHeight = originalImage.height * scale;
             const offsetX = (gridWidth - drawWidth) / 2;
@@ -659,7 +659,8 @@
             
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 3; col++) {
-                    sliceCtx.clearRect(0, 0, sliceWidth, sliceHeight);
+                    sliceCtx.fillStyle = '#000000';
+                    sliceCtx.fillRect(0, 0, sliceWidth, sliceHeight);
                     
                     const sliceX = col * sliceWidth;
                     const sliceY = row * sliceHeight;
